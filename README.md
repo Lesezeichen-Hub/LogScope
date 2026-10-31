@@ -1,4 +1,4 @@
-# LogScope 1.2.0
+# LogScope 1.3.0
 
 LogScope ist ein statisches, lokal arbeitendes Werkzeug zur Untersuchung von Logdateien. Die Oberfläche ist deutschsprachig; alle Dateien werden nur nach Benutzerauswahl gelesen. Der Produktionsbetrieb benötigt keinen Backenddienst und keine Internetverbindung.
 
@@ -11,6 +11,8 @@ Den Ordner mit `index.html`, `src/` und `version.json` auf einem statischen Webs
 Dateien auswählen oder auf die Seite ziehen. In der Importvorschau Format, Kodierung, Syslog-Bezugsjahr und Zeitzonenoffset prüfen. Ohne explizite Zeitzone bleiben lokale Zeitstempel in der Timeline unvergleichbar. Mehrere Quellen können im Logviewer und in der Systemkorrelation zusammen betrachtet werden. Für einen Vorher/Nachher-Vergleich im Bereich „Vergleich“ die Quellen A und B zuordnen. Im Bereich „Berichte“ erst die Vorschau prüfen, dann Markdown, HTML, JSON oder CSV exportieren oder über den Browser als PDF drucken. Projekte werden nur über „Projekt speichern“ in IndexedDB abgelegt und über „Gespeichertes Projekt öffnen“ wiederhergestellt. Quellenmetadaten enthalten einen SHA-256-Fingerprint der ersten und letzten 64 KiB plus Dateigröße; dies ist keine Volltext-Prüfsumme.
 
 ## Formate und Grenzen
+
+Die **Access-Analyse** fasst Nginx- und Apache-httpd-Access-Logs im Common/Combined-Format sowie Caddy-JSON-Access-Logs zusammen. JSONL mit Request- und Statusfeldern wird ebenfalls berücksichtigt, etwa strukturierte Nginx-Logs mit `time_iso8601`. Die Ansicht zeigt Request-Zahlen, Statusklassen und Codes, Fehlerquoten, protokollierte Antwortbytes, eindeutige Client-Adressen, verfügbare P50/P95/P99-Laufzeiten sowie Verteilungen nach Zeitraum, Wochentag und Stunde (UTC). Ranglisten enthalten Pfade, Fehlerpfade, Methoden, Clients, Hosts, User Agents, Referrer-Domains, Protokolle und Dateien. Quelle, Jahr und Zeitauflösung sind wählbar; ein Klick auf einen Ranglisteneintrag öffnet die Suche im Logviewer. URL-Abfragen werden aus den aggregierten Pfaden entfernt. Fehlende Größen und Laufzeiten bleiben unbekannt. Client-Adressen sind keine verlässliche Besucherzählung. Der Browser-Test `npm run test:browser:access` prüft die Auswertung mit gemischten Access-Logs.
 
 Der Logviewer zeigt auch Einträge ohne Zeitstempel. Bei neuen Importen werden bestehende Such- und Zeitfilter zurückgesetzt; im Logviewer zeigt ein Zähler die sichtbaren und insgesamt geladenen Ereignisse. Die Timeline bietet alle in den Dateien vorhandenen Jahre zur Auswahl und zeigt den ersten und letzten Zeitpunkt sowie die Anzahl datierter und undatierter Ereignisse je Datei. Führende ISO-Zeitstempel werden auch bei generischem Text erkannt. Für Syslog ohne Jahr und lokale Zeitstempel ohne Zeitzone müssen Bezugsjahr und Offset bereits beim Import angegeben werden. Twisted-Logs wie `CRITICAL:twisted:Unhandled Error` werden mitsamt Traceback als Ereignis angezeigt. Fehlt im Log ein Datum, erscheint es nicht in der Timeline; LogScope erfindet dafür keinen Zeitpunkt.
 

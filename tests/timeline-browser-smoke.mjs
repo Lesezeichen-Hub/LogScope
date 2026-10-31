@@ -34,6 +34,7 @@ try{
   if(await page.locator('.virtual-row').count()===0)throw Error('Viewer has no visible rows');
   await page.locator('#quickSearch').fill('unmatched-search');
   await page.getByText('0 von 5.300 Ereignissen').waitFor();
+  if(!(await page.locator('.scope-controls').innerText()).includes('unmatched-search'))throw Error('Global filter summary is stale');
   await page.locator('#resetViewerFilters').click();
   await page.getByText('5.300 von 5.300 Ereignissen').waitFor();
   const scroll=await page.locator('#virtualViewport').evaluate(el=>{el.scrollTop=el.scrollHeight;return {top:el.scrollTop,height:el.scrollHeight,client:el.clientHeight}});

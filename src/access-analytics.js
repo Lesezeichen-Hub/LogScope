@@ -1,5 +1,5 @@
 const ACCESS_FORMATS=new Set(['web-access','caddy-json']);
-function finiteNumber(value){if(value===null||value===undefined||value===''||value==='-')return null;const n=Number(value);return Number.isFinite(n)?n:null}
+function finiteNumber(value){if(value===null||value===undefined||typeof value==='boolean'||typeof value==='object'||typeof value==='string'&&(!value.trim()||value==='-'))return null;const n=Number(value);return Number.isFinite(n)?n:null}
 function first(...values){return values.find(value=>value!==null&&value!==undefined&&value!==''&&value!=='-')??null}
 function text(value){return typeof value==='string'&&value.trim()?value.trim():null}
 function header(headers,name){if(!headers||typeof headers!=='object')return null;const key=Object.keys(headers).find(key=>key.toLowerCase()===name);const value=key&&headers[key];return text(Array.isArray(value)?value[0]:value)}

@@ -43,7 +43,8 @@ try{
   const target=page.getByRole('heading',{name:'Häufigste Pfade'}).locator('..').getByRole('button',{name:'/api'});
   await target.click();
   await page.locator('#quickSearch').waitFor();
-  if(await page.locator('#quickSearch').inputValue()!=='/api')throw Error('Access drilldown failed');
+  if(!(await page.locator('.scope-controls').innerText()).includes('/api'))throw Error('Exact access drilldown missing');
+  if(!(await page.locator('#viewerCount').innerText()).startsWith('1 von'))throw Error('Access drilldown did not retain source and exact path');
   if(errors.length)throw Error(errors.join('\n'));
   if(process.env.LOGSCOPE_ACCESS_SCREENSHOT){
     await page.locator('[data-view="Access-Analyse"]').click();

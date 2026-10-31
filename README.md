@@ -1,4 +1,4 @@
-# LogScope 1.0.0
+# LogScope 1.1.0
 
 LogScope ist ein statisches, lokal arbeitendes Werkzeug zur Untersuchung von Logdateien. Die Oberfläche ist deutschsprachig; alle Dateien werden nur nach Benutzerauswahl gelesen. Der Produktionsbetrieb benötigt keinen Backenddienst und keine Internetverbindung.
 
@@ -12,7 +12,20 @@ Dateien auswählen oder auf die Seite ziehen. In der Importvorschau Format, Kodi
 
 ## Formate und Grenzen
 
-Erkannt werden Syslog, Journald JSON/Text, Caddy JSON/Konsole, MariaDB Error/Slow/General, Jenkins und generischer Text/JSONL. Weitere Parser lassen sich in `src/parser.js` anhand der `format`-Kennung ergänzen und in `src/core.js` registrieren. Binäre `.journal`-Dateien zuvor mit `journalctl --output=json` exportieren. Binäre MariaDB-Binlogs sind nicht unterstützt. `.gz` wird im Browser gestreamt und mit Grenzen für entpackte Größe und Verhältnis verarbeitet. `.zip` wird in der Vorschau abgewiesen; lokal entpacken und dann importieren. CSV wird als Text angezeigt. Die automatische Formatwahl nutzt eine Stichprobe; sie kann im Dialog überschrieben werden.
+Erkannt werden Syslog, Journald JSON/Text, Caddy JSON/Konsole, MariaDB Error/Slow/General, Jenkins und generischer Text/JSONL. Zusätzlich sind folgende Parser vorhanden:
+
+| Bereich | Unterstützte Formate |
+| --- | --- |
+| Web | Apache/Nginx Common und Combined Access, Apache/Nginx Error |
+| Datenbanken | MySQL Error (Text und JSON), Slow und General Query; MongoDB Structured JSON und älteres Textformat; Db2 `db2diag.log`; PostgreSQL stderr, JSON und CSV |
+| AWS | CloudTrail Records und JSONL, CloudWatch `logEvents` und JSONL, ALB Access, VPC Flow Logs im Standardformat, WAF JSON, S3 Server Access, CloudFront Standard Access, ECS/FireLens JSON, Lambda Text/JSON |
+| Kubernetes | CRI-Containerlogs mit `P`/`F`-Fragmenten, klog-Text, Docker JSON, Audit JSON, Event JSON und `EventList` |
+
+Bei MySQL und MariaDB sind Slow- und General-Logs anhand des Inhalts häufig nicht unterscheidbar. Ein Dateiname mit `mysql` dient als zusätzlicher Hinweis; in der Importvorschau kann das Format manuell korrigiert werden. CloudWatch-Einzelereignisse ohne AWS-Metadaten können wie generisches JSONL aussehen; auch hier das Format bei Bedarf überschreiben. `aws-vpc` verarbeitet die Standardspalten der Version 2; benutzerdefinierte Spaltenreihenfolgen werden nicht automatisch interpretiert. Die Access-Parser erwarten Common/Combined-Layouts. Kubernetes-Podmetadaten werden nur dann aus dem Dateinamen übernommen, wenn dieser dem üblichen Containerlog-Schema entspricht. Klog-Zeitstempel benötigen ein Bezugsjahr und einen Zeitzonenoffset. HTTP-Status, WAF-Aktion, VPC-Aktion und Container-Stream sind eigene Felder und kein automatisch abgeleiteter Log-Schweregrad.
+
+Weitere Parser lassen sich in `src/extended-parsers.js` registrieren; `src/parser.js` übernimmt das normalisierte Ereignismodell und `src/worker.js` den Stream-Import. Formatangaben beruhen auf den Dokumentationen von [MongoDB](https://www.mongodb.com/docs/manual/reference/log-messages/), [MySQL](https://dev.mysql.com/doc/refman/8.4/en/error-log-format.html), [Db2](https://www.ibm.com/docs/en/db2/11.5.x?topic=files-interpreting-diagnostic-log-file-entries), [PostgreSQL](https://www.postgresql.org/docs/18/runtime-config-logging.html), [AWS ALB](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-access-logs.html), [AWS VPC](https://docs.aws.amazon.com/vpc/latest/userguide/flow-log-records.html), [AWS CloudFront](https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/standard-logs-reference.html), [AWS S3](https://docs.aws.amazon.com/AmazonS3/latest/userguide/LogFormat.html) und [Kubernetes CRI](https://github.com/kubernetes/design-proposals-archive/blob/main/node/kubelet-cri-logging.md).
+
+Binäre `.journal`-Dateien zuvor mit `journalctl --output=json` exportieren. Binäre MariaDB-Binlogs sind nicht unterstützt. `.gz` wird im Browser gestreamt und mit Grenzen für entpackte Größe und Verhältnis verarbeitet. `.zip` wird in der Vorschau abgewiesen; lokal entpacken und dann importieren. Andere CSV-Layouts als PostgreSQL-CSV werden als Text angezeigt. Die automatische Formatwahl nutzt eine Stichprobe; sie kann im Dialog überschrieben werden.
 
 Der Worker liest Dateien inkrementell. Die normalisierten Ereignisse bleiben jedoch für die Sitzung im Arbeitsspeicher; bei 250.000 Ereignissen stoppt der Import und markiert die Quelle als unvollständig. Ein IndexedDB-Streamingimport und Virtualisierung aller Auswertungen sind noch nicht implementiert. Regex-Suche prüft die Ausdruckslänge, kann aber bei komplexen Mustern dennoch blockieren. Die aktuelle Version enthält keine frei definierbaren Parserprofile, keine grafische Filtersprache, keinen präzisen Text-Diff und keine Anomalieerkennung. HTTP-Latenzen setzen Caddys Standarddauer in Sekunden voraus. Mehrdeutige Sommerzeitstunden werden nicht aufgelöst; einen konkreten Offset angeben. Weder Zeitnähe noch Fingerprint-Gleichheit beweisen Kausalität.
 
@@ -22,4 +35,4 @@ Die Content-Security-Policy unterbindet Netzwerkanfragen. Importierte Texte werd
 
 ## Tests
 
-`npm test` führt die parser- und analysebezogenen Node-Tests aus. Die Dateien unter `tests/fixtures/` sind synthetisch. `npm run test:browser` führt einen Browser-Smoke-Test für Import, Gzip, Vergleich und Projektwiederherstellung unter `/modules/demo/index.html` aus. Dafür ist Playwright samt Browser lokal erforderlich; alternativ können `LOGSCOPE_PLAYWRIGHT_ROOT`, `LOGSCOPE_BROWSER_PATH` und `LOGSCOPE_STATIC_ROOT=dist` gesetzt werden. Performance-Benchmarks sind noch nicht vorhanden; es werden keine Leistungswerte behauptet.
+`npm test` führt die parser- und analysebezogenen Node-Tests aus. Die Dateien unter `tests/fixtures/` sind synthetisch. `npm run test:browser` prüft Import, Gzip, Vergleich und Projektwiederherstellung; `npm run test:browser:extended` importiert Web-, MongoDB-, Db2-, AWS- und Kubernetes-Beispiele. Beide laufen unter `/modules/demo/index.html`. Dafür ist Playwright samt Browser lokal erforderlich; alternativ können `LOGSCOPE_PLAYWRIGHT_ROOT`, `LOGSCOPE_BROWSER_PATH` und `LOGSCOPE_STATIC_ROOT=dist` gesetzt werden. Performance-Benchmarks sind noch nicht vorhanden; es werden keine Leistungswerte behauptet.

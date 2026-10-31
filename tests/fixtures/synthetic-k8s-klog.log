@@ -1,0 +1,3 @@
+I1031 12:00:00.123456 42 kubelet.go:79] synthetic startup
+  continued detail
+E1031 12:00:01.123456 42 kubelet.go:80] synthetic failure

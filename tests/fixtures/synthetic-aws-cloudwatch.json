@@ -1,0 +1,8 @@
+{
+  "logGroupName": "/aws/lambda/demo",
+  "logStreamName": "synthetic-stream",
+  "logEvents": [
+    {"id":"a","timestamp":1793448000000,"message":"synthetic start"},
+    {"id":"b","timestamp":1793448001000,"message":"synthetic error"}
+  ]
+}

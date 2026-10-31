@@ -1,0 +1,6 @@
+{
+  "Records": [
+    {"eventVersion":"1.08","eventTime":"2026-10-31T12:00:00Z","eventSource":"ec2.amazonaws.com","eventName":"StartInstances","awsRegion":"eu-central-1"},
+    {"eventVersion":"1.08","eventTime":"2026-10-31T12:01:00Z","eventSource":"iam.amazonaws.com","eventName":"CreateUser","errorCode":"AccessDenied","awsRegion":"eu-central-1"}
+  ]
+}

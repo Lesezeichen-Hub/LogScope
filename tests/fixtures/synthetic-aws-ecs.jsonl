@@ -1,0 +1,1 @@
+{"time":"2026-10-31T12:00:00Z","log":"synthetic container output\n","ecs_cluster":"demo","ecs_task_arn":"arn:aws:ecs:demo","container_name":"web"}

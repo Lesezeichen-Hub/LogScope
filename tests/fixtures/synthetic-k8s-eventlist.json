@@ -1,0 +1,7 @@
+{
+  "kind": "EventList",
+  "items": [
+    {"kind":"Event","reason":"BackOff","type":"Warning","message":"synthetic restart","metadata":{"creationTimestamp":"2026-10-31T12:00:00Z"}},
+    {"kind":"Event","reason":"Pulled","type":"Normal","message":"synthetic image pull","metadata":{"creationTimestamp":"2026-10-31T12:01:00Z"}}
+  ]
+}

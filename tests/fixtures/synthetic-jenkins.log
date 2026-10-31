@@ -1,0 +1,5 @@
+[2026-10-31T12:00:00Z] [Pipeline] { (Build)
+[2026-10-31T12:00:02Z] ERROR: compilation failed
+java.lang.IllegalStateException: synthetic failure
+    at demo.Main.run(Main.java:10)
+Finished: FAILURE

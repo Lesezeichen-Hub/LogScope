@@ -1,0 +1,2 @@
+{"ts":1793449800,"level":"info","logger":"http.log.access","request":{"method":"GET","host":"example.test","uri":"/"},"status":200,"duration":0.012,"size":1024}
+{"ts":1793449801,"level":"error","logger":"http.log.access","request":{"method":"GET","host":"example.test","uri":"/api"},"status":502,"duration":1.25,"size":0}

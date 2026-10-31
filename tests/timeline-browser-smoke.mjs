@@ -26,6 +26,9 @@ try{
   if(!['syslog','journal-text'].includes(detected[0])||detected[1]!=='twisted')throw Error('Format detection: '+detected.join(','));
   await page.locator('#startImport').click();
   await page.locator('.file-row').nth(1).getByText('Abgeschlossen').waitFor({timeout:20000});
+  await page.locator('[data-view=Dashboard]').click();
+  const dashboardBar=await page.locator('.chart button').first().evaluate(el=>el.getBoundingClientRect().height);
+  if(dashboardBar<20)throw Error('Dashboard chart bars are invisible');
   await page.locator('[data-view=Logviewer]').click();
   await page.getByText('5.300 von 5.300 Ereignissen').waitFor();
   if(await page.locator('.virtual-row').count()===0)throw Error('Viewer has no visible rows');
@@ -44,6 +47,12 @@ try{
   if(!info.includes('5.000 datierte und 300 undatierte Ereignisse')||!info.includes('haas.log'))throw Error('Time availability missing');
   await page.locator('#timelineYear').selectOption('2020');
   if(await page.locator('#timelineChart .chart button').count()===0)throw Error('Historic chart empty');
+  const timelineBar=await page.locator('#timelineChart .chart button').first().evaluate(el=>el.getBoundingClientRect().height);
+  if(timelineBar<20)throw Error('Timeline chart bars are invisible');
+  await page.locator('#interval').selectOption('3600000');
+  await page.locator('#timelineChart [data-time]').first().click();
+  await page.locator('#searchFrom').waitFor();
+  if(!await page.locator('#searchFrom').inputValue()||!await page.locator('#searchTo').inputValue())throw Error('Changed interval lost chart drilldown');
   await page.locator('[data-view=Logviewer]').click();
   await page.locator('#quickSearch').fill('unmatched-search');
   await page.locator('#importTop').click();

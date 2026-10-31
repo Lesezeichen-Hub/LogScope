@@ -1,4 +1,4 @@
-# LogScope 1.4.0
+# LogScope 1.4.1
 
 LogScope ist ein statisches, lokal arbeitendes Werkzeug zur Untersuchung von Logdateien. Die Oberfläche ist deutschsprachig; alle Dateien werden nur nach Benutzerauswahl gelesen. Der Produktionsbetrieb benötigt keinen Backenddienst und keine Internetverbindung.
 
@@ -8,7 +8,7 @@ Den Ordner mit `index.html`, `src/` und `version.json` auf einem statischen Webs
 
 ## Bedienung
 
-Dateien auswählen oder auf die Seite ziehen. In der Importvorschau Format, Kodierung, Syslog-Bezugsjahr und Zeitzonenoffset prüfen. Ohne explizite Zeitzone bleiben lokale Zeitstempel in der Timeline unvergleichbar. Mehrere Quellen können im Logviewer und in der Systemkorrelation zusammen betrachtet werden. Für einen Vorher/Nachher-Vergleich im Bereich „Vergleich“ die Quellen A und B zuordnen. Im Bereich „Berichte“ erst die Vorschau prüfen, dann Markdown, HTML, JSON oder CSV exportieren oder über den Browser als PDF drucken. Projekte werden nur über „Projekt speichern“ in IndexedDB abgelegt und über „Gespeichertes Projekt öffnen“ wiederhergestellt. Quellenmetadaten enthalten einen SHA-256-Fingerprint der ersten und letzten 64 KiB plus Dateigröße; dies ist keine Volltext-Prüfsumme.
+Dateien auswählen oder auf die Seite ziehen. In der Importvorschau Format, Kodierung, Syslog-Bezugsjahr und Zeitzonenoffset prüfen. Ohne explizite Zeitzone bleiben lokale Zeitstempel in der Timeline unvergleichbar. Mehrere Quellen können im Logviewer und in der Systemkorrelation zusammen betrachtet werden. Für einen Vorher/Nachher-Vergleich im Bereich „Vergleich“ die Quellen A und B zuordnen. Im Bereich „Berichte“ erst die Vorschau prüfen, dann Markdown, HTML, JSON oder CSV exportieren oder über den Browser als PDF drucken. Projekte werden nur über „Projekt speichern“ in IndexedDB abgelegt. In den Einstellungen lassen sich mehrere gespeicherte Projekte anzeigen, öffnen und einzeln entfernen; „Neues Projekt“ beginnt eine separate Analyse. Bereits gespeicherte Projekte bleiben erreichbar. Quellenmetadaten enthalten einen SHA-256-Fingerprint der ersten und letzten 64 KiB plus Dateigröße; dies ist keine Volltext-Prüfsumme.
 
 ## Formate und Grenzen
 

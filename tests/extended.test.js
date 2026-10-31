@@ -86,3 +86,8 @@ test('parses Kubernetes klog with explicit year and EventList records',()=>{
   let noYear=parseBlock(rows[0],'k8s-klog',{sourceId:'s',offsetMinutes:60},1,1);assert.equal(noYear.timestampUtc,null);assert.match(noYear.parseWarnings.join(' '),/Bezugsjahr/);
   const list={kind:'EventList',items:[{kind:'Event',reason:'BackOff',type:'Warning',message:'synthetic failure',metadata:{creationTimestamp:'2026-10-31T12:00:00Z'}}]};const doc=JSON.stringify(list);assert.equal(detect(doc).format,'k8s-event-json');let raw=[];const scanner=new JsonRecordStream('items',x=>raw.push(x));for(let i=0;i<doc.length;i+=5)scanner.feed(doc.slice(i,i+5));scanner.finish();assert.equal(raw.length,1);assert.equal(parseBlock(raw[0],'k8s-event-json',ctx,1,1).severity,'warn')
 });
+
+test('keeps timestamp-free Twisted tracebacks visible as single events',()=>{
+  const lines=['CRITICAL:twisted:Removing stale pidfile /var/run/demo.pid','CRITICAL:twisted:Unhandled Error','Traceback (most recent call last):','  File "/srv/demo.py", line 10, in run','    raise ValueError("synthetic")','builtins.ValueError: synthetic failure','CRITICAL:twisted:Unhandled Error','Traceback (most recent call last):','  File "/srv/demo.py", line 12, in run','builtins.KeyError: synthetic'];
+  assert.equal(detect(lines.join('\n')).format,'twisted');const events=[...parseLines(lines,'twisted',ctx)];assert.equal(events.length,3);assert.equal(events[1].lineStart,2);assert.equal(events[1].lineEnd,6);assert.equal(events[1].timestampUtc,null);assert.equal(events[1].fields.frames,1);assert.match(events[1].message,/ValueError/)
+});

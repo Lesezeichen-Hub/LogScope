@@ -1,4 +1,4 @@
-# LogScope 1.1.0
+# LogScope 1.2.0
 
 LogScope ist ein statisches, lokal arbeitendes Werkzeug zur Untersuchung von Logdateien. Die Oberfläche ist deutschsprachig; alle Dateien werden nur nach Benutzerauswahl gelesen. Der Produktionsbetrieb benötigt keinen Backenddienst und keine Internetverbindung.
 
@@ -11,6 +11,8 @@ Den Ordner mit `index.html`, `src/` und `version.json` auf einem statischen Webs
 Dateien auswählen oder auf die Seite ziehen. In der Importvorschau Format, Kodierung, Syslog-Bezugsjahr und Zeitzonenoffset prüfen. Ohne explizite Zeitzone bleiben lokale Zeitstempel in der Timeline unvergleichbar. Mehrere Quellen können im Logviewer und in der Systemkorrelation zusammen betrachtet werden. Für einen Vorher/Nachher-Vergleich im Bereich „Vergleich“ die Quellen A und B zuordnen. Im Bereich „Berichte“ erst die Vorschau prüfen, dann Markdown, HTML, JSON oder CSV exportieren oder über den Browser als PDF drucken. Projekte werden nur über „Projekt speichern“ in IndexedDB abgelegt und über „Gespeichertes Projekt öffnen“ wiederhergestellt. Quellenmetadaten enthalten einen SHA-256-Fingerprint der ersten und letzten 64 KiB plus Dateigröße; dies ist keine Volltext-Prüfsumme.
 
 ## Formate und Grenzen
+
+Der Logviewer zeigt auch Einträge ohne Zeitstempel. Bei neuen Importen werden bestehende Such- und Zeitfilter zurückgesetzt; im Logviewer zeigt ein Zähler die sichtbaren und insgesamt geladenen Ereignisse. Die Timeline bietet alle in den Dateien vorhandenen Jahre zur Auswahl und zeigt den ersten und letzten Zeitpunkt sowie die Anzahl datierter und undatierter Ereignisse je Datei. Führende ISO-Zeitstempel werden auch bei generischem Text erkannt. Für Syslog ohne Jahr und lokale Zeitstempel ohne Zeitzone müssen Bezugsjahr und Offset bereits beim Import angegeben werden. Twisted-Logs wie `CRITICAL:twisted:Unhandled Error` werden mitsamt Traceback als Ereignis angezeigt. Fehlt im Log ein Datum, erscheint es nicht in der Timeline; LogScope erfindet dafür keinen Zeitpunkt.
 
 Erkannt werden Syslog, Journald JSON/Text, Caddy JSON/Konsole, MariaDB Error/Slow/General, Jenkins und generischer Text/JSONL. Zusätzlich sind folgende Parser vorhanden:
 
@@ -35,4 +37,4 @@ Die Content-Security-Policy unterbindet Netzwerkanfragen. Importierte Texte werd
 
 ## Tests
 
-`npm test` führt die parser- und analysebezogenen Node-Tests aus. Die Dateien unter `tests/fixtures/` sind synthetisch. `npm run test:browser` prüft Import, Gzip, Vergleich und Projektwiederherstellung; `npm run test:browser:extended` importiert Web-, MongoDB-, Db2-, AWS- und Kubernetes-Beispiele. Beide laufen unter `/modules/demo/index.html`. Dafür ist Playwright samt Browser lokal erforderlich; alternativ können `LOGSCOPE_PLAYWRIGHT_ROOT`, `LOGSCOPE_BROWSER_PATH` und `LOGSCOPE_STATIC_ROOT=dist` gesetzt werden. Performance-Benchmarks sind noch nicht vorhanden; es werden keine Leistungswerte behauptet.
+`npm test` führt die parser- und analysebezogenen Node-Tests aus. Die Dateien unter `tests/fixtures/` sind synthetisch. `npm run test:browser` prüft Import, Gzip, Vergleich und Projektwiederherstellung; `npm run test:browser:extended` importiert Web-, MongoDB-, Db2-, AWS- und Kubernetes-Beispiele; `npm run test:browser:timeline` prüft Logviewer und Timeline mit 5.300 synthetischen Ereignissen. Die Browser-Tests laufen unter `/modules/demo/index.html`. Dafür ist Playwright samt Browser lokal erforderlich; alternativ können `LOGSCOPE_PLAYWRIGHT_ROOT`, `LOGSCOPE_BROWSER_PATH` und `LOGSCOPE_STATIC_ROOT=dist` gesetzt werden. Performance-Benchmarks sind noch nicht vorhanden; es werden keine Leistungswerte behauptet.

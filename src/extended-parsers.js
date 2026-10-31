@@ -9,7 +9,7 @@ const nginxError=/^\d{4}\/\d\d\/\d\d \d\d:\d\d:\d\d \[(?:error|warn|notice|info|
 const apacheError=/^\[[A-Za-z]{3} [A-Za-z]{3} \d{1,2} \d\d:\d\d:\d\d(?:\.\d+)? \d{4}\] \[[^\]]+:(?:error|warn|notice|info|debug|crit|alert|emerg)\]/i;
 const mysqlError=/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?(?:Z|[+-]\d\d:\d\d)?\s+(?:\d+\s+)?\[(?:ERROR|Warning|Note|System)\]\s+\[MY-\d+\]/i;
 
-export const extendedFormats=['web-access','nginx-error','apache-error','mysql-error','mysql-error-json','mysql-slow','mysql-general','mongodb-json','mongodb-text','db2diag','postgresql-stderr','postgresql-json','postgresql-csv','aws-cloudtrail','aws-cloudwatch','aws-alb','aws-vpc','aws-waf','aws-s3','aws-cloudfront','aws-ecs','aws-lambda','k8s-cri','k8s-klog','k8s-docker-json','k8s-audit-json','k8s-event-json'];
+export const extendedFormats=['web-access','nginx-error','apache-error','mysql-error','mysql-error-json','mysql-slow','mysql-general','mongodb-json','mongodb-text','db2diag','postgresql-stderr','postgresql-json','postgresql-csv','aws-cloudtrail','aws-cloudwatch','aws-alb','aws-vpc','aws-waf','aws-s3','aws-cloudfront','aws-ecs','aws-lambda','k8s-cri','k8s-klog','k8s-docker-json','k8s-audit-json','k8s-event-json','twisted'];
 
 export function detectExtended(sample){
   const lines=sample.trim().split(/\r?\n/).slice(0,30), first=lines.find(x=>x.trim())||'';
@@ -18,6 +18,7 @@ export function detectExtended(sample){
   if(/"kind"\s*:\s*"EventList"/.test(sample)&&/"items"\s*:\s*\[/.test(sample))return {format:'k8s-event-json',confidence:.96};
   if(/^#Fields:\s+date\s+time\s+/m.test(sample)&&/x-edge-location|sc-status/.test(sample))return {format:'aws-cloudfront',confidence:.97};
   if(criLine.test(first))return {format:'k8s-cri',confidence:.97};
+  if(/^(?:CRITICAL|ERROR|WARNING|INFO|DEBUG):twisted:/i.test(first))return {format:'twisted',confidence:.97};
   if(/^[IWEF]\d{4}\s+\d\d:\d\d:\d\d\.\d+\s+\d+\s+\S+:\d+\]/.test(first))return {format:'k8s-klog',confidence:.95};
   if(db2Header.test(first))return {format:'db2diag',confidence:.96};
   if(albLine.test(first))return {format:'aws-alb',confidence:.94};
@@ -124,6 +125,13 @@ export function parseExtended(raw,format,context={}){
       const o=JSON.parse(first);r.ts=o.requestReceivedTimestamp??o.stageTimestamp??null;r.service='k8s-audit';r.process=o.verb??null;r.message=`${o.verb??'request'} ${o.requestURI??''} ${o.responseStatus?.code??''}`.trim();r.fields=o;
     }else if(format==='k8s-event-json'){
       const o=JSON.parse(raw);r.ts=o.eventTime??o.lastTimestamp??o.metadata?.creationTimestamp??null;r.service='k8s-event';r.host=o.source?.host??null;r.level=o.type==='Warning'?'warn':'info';r.message=String(o.message??o.note??o.reason??first);r.fields=o;
+    }else if(format==='twisted'){
+      const m=first.match(/^(CRITICAL|ERROR|WARNING|INFO|DEBUG):([^:]+):(.*)$/i);
+      if(!m){r.warnings.push('Twisted-Kopf nicht erkannt');return r}
+      r.level=m[1];r.service=m[2];r.message=m[3].trim();
+      const exception=raw.match(/^(?:[\w.]+(?:Error|Exception)|builtins\.[\w]+):\s*.*$/gm)?.at(-1);
+      Object.assign(f,{exception:exception??null,traceback:raw.includes('Traceback (most recent call last):'),frames:(raw.match(/^\s*File "/gm)||[]).length});
+      if(exception)r.message+=` · ${exception}`;
     }
   }catch(error){r.warnings.push(`JSON oder Feldstruktur nicht lesbar: ${error.message}`)}
   return r;
@@ -140,6 +148,7 @@ export function startsNewEvent(format,line,block){
     return !(previous&&current&&previous[2]===current[2]&&previous[3]==='P');
   }
   if(format==='k8s-klog')return /^[IWEF]\d{4}\s+\d\d:\d\d:\d\d\.\d+\s+\d+\s+\S+:\d+\]/.test(line);
+  if(format==='twisted')return /^(?:CRITICAL|ERROR|WARNING|INFO|DEBUG):twisted:/i.test(line);
   return true;
 }
 

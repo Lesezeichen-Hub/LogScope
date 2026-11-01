@@ -5,6 +5,10 @@ const ctx={sourceId:'extended',year:2026,offsetMinutes:60,shiftSeconds:0};
 test('recognizes web access and error logs',()=>{
   const access='203.0.113.4 - - [31/Oct/2026:12:01:02 +0100] "GET /api HTTP/1.1" 502 123 "-" "curl/8.0"';
   assert.equal(detect(access).format,'web-access');let e=parseBlock(access,'web-access',ctx,1,1);assert.equal(e.timestampUtc,'2026-10-31T11:01:02.000Z');assert.equal(e.timestampRaw,'31/Oct/2026:12:01:02 +0100');assert.equal(e.fields.status,502);assert.equal(e.fields.userAgent,'curl/8.0');
+  const extraColumn='203.0.113.5 - - - [25/Oct/2026:00:01:01 +0200] "PROPFIND /remote.php/dav/ HTTP/1.1" 207 6577 "https://example.test/page" "Nextcloud-android/35.0.1"';
+  assert.equal(detect(extraColumn).format,'web-access');e=parseBlock(extraColumn,'web-access',ctx,1,1);assert.equal(e.timestampUtc,'2026-10-24T22:01:01.000Z');assert.equal(e.fields.status,207);assert.equal(e.fields.referrer,'https://example.test/page');assert.equal(e.fields.userAgent,'Nextcloud-android/35.0.1');
+  const quotedRequest=' 203.0.113.6 - - - [25/Oct/2026:00:01:02 +0200] "GET /search?q=\\"test\\" HTTP/1.1" 400 12 "-" "test-agent"';
+  assert.equal(detect(quotedRequest).format,'web-access');e=parseBlock(quotedRequest,'web-access',ctx,2,2);assert.equal(e.fields.status,400);assert.equal(e.fields.request,'GET /search?q=\\"test\\" HTTP/1.1');assert.equal(e.fields.userAgent,'test-agent');
   const nginx='2026/10/31 12:00:00 [error] 123#45: *67 connect() failed, client: 203.0.113.4, server: example.test';
   assert.equal(detect(nginx).format,'nginx-error');e=parseBlock(nginx,'nginx-error',ctx,1,1);assert.equal(e.processId,123);assert.equal(e.severity,'error');
   const apache='[Sat Oct 31 12:00:00.123 2026] [core:error] [pid 123:tid 456] AH00001: synthetic error';

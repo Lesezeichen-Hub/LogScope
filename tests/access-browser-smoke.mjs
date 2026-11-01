@@ -21,11 +21,11 @@ try{
   await page.goto('http://127.0.0.1:8768/modules/demo/index.html');
   await page.locator('[data-view="Access-Analyse"]').click();
   await page.getByRole('heading',{name:'HTTP-Zugriffe auswerten'}).waitFor();
-  const apache='203.0.113.10 - - [31/Oct/2026:12:10:00 +0100] "GET /article?token=x HTTP/1.1" 200 250 "https://example.test/page" "browser"\n203.0.113.11 - - [31/Oct/2026:12:11:00 +0100] "POST /login HTTP/1.1" 403 90 "-" "curl/8.0"';
+  const apache='203.0.113.10 - - - [31/Oct/2026:12:10:00 +0100] "GET /article?token=x HTTP/1.1" 200 250 "https://example.test/page" "browser"\n203.0.113.11 - - - [31/Oct/2026:12:11:00 +0100] "POST /login HTTP/1.1" 403 90 "-" "curl/8.0"';
   await page.locator('#fileInput').setInputFiles([
     {name:'synthetic-nginx-access.log',mimeType:'text/plain',buffer:fs.readFileSync(path.join(root,'tests/fixtures/synthetic-nginx-access.log'))},
     {name:'synthetic-caddy.jsonl',mimeType:'application/json',buffer:fs.readFileSync(path.join(root,'tests/fixtures/synthetic-caddy.jsonl'))},
-    {name:'httpd-access.log',mimeType:'text/plain',buffer:Buffer.from(apache)}
+    {name:'apache_access.log.1',mimeType:'text/plain',buffer:Buffer.from(apache)}
   ]);
   await page.locator('#startImport').click();
   await page.locator('.file-row').nth(2).getByText('Abgeschlossen').waitFor({timeout:10000});

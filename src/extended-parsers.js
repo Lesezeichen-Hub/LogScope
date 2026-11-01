@@ -4,7 +4,7 @@ const month={Jan:'01',Feb:'02',Mar:'03',Apr:'04',May:'05',Jun:'06',Jul:'07',Aug:
 const db2Header=/^(\d{4}-\d\d-\d\d-\d\d\.\d\d\.\d\d\.\d{1,9}[+-]\d{1,4})\s+/;
 const criLine=/^(\d{4}-\d\d-\d\dT\S+)\s+(stdout|stderr)\s+([FP])\s?(.*)$/;
 const albLine=/^(?:http|https|h2|grpcs|ws|wss)\s+\d{4}-\d\d-\d\dT\S+\s+\S+\s+/;
-const accessLine=/^(\S+)\s+\S+\s+\S+\s+\[(\d{1,2}\/\w{3}\/\d{4}:\d\d:\d\d:\d\d\s+[+-]\d{4})\]\s+"([^"\r\n]*)"\s+(\d{3}|-)\s+(\d+|-)/;
+const accessLine=/^\s*(\S+)(?:\s+\S+){2,3}\s+\[(\d{1,2}\/\w{3}\/\d{4}:\d\d:\d\d:\d\d\s+[+-]\d{4})\]\s+"((?:\\.|[^"\\\r\n])*)"\s+(\d{3}|-)\s+(\d+|-)/;
 const nginxError=/^\d{4}\/\d\d\/\d\d \d\d:\d\d:\d\d \[(?:error|warn|notice|info|debug|crit|alert|emerg)\]/i;
 const apacheError=/^\[[A-Za-z]{3} [A-Za-z]{3} \d{1,2} \d\d:\d\d:\d\d(?:\.\d+)? \d{4}\] \[[^\]]+:(?:error|warn|notice|info|debug|crit|alert|emerg)\]/i;
 const mysqlError=/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?(?:Z|[+-]\d\d:\d\d)?\s+(?:\d+\s+)?\[(?:ERROR|Warning|Note|System)\]\s+\[MY-\d+\]/i;
@@ -66,7 +66,7 @@ export function parseExtended(raw,format,context={}){
   try{
     if(format==='web-access'){
       const m=first.match(accessLine);if(!m){r.warnings.push('Access-Zeile nicht erkannt');return r}
-      const t=tokens(first);r.ts=parseApacheTime(m[2]);r.timestampRaw=m[2];r.host=null;r.service='web';r.message=m[3];Object.assign(f,{remoteAddress:m[1],request:m[3],status:Number(m[4])||null,bytes:m[5]==='-'?null:Number(m[5]),referrer:t[7]??null,userAgent:t[8]??null});
+      const t=tokens(first),dateIndex=t.findIndex(token=>token.startsWith('['));r.ts=parseApacheTime(m[2]);r.timestampRaw=m[2];r.host=null;r.service='web';r.message=m[3];Object.assign(f,{remoteAddress:m[1],request:m[3],status:Number(m[4])||null,bytes:m[5]==='-'?null:Number(m[5]),referrer:t[dateIndex+4]??null,userAgent:t[dateIndex+5]??null});
     }else if(format==='nginx-error'){
       const m=first.match(/^(\d{4}\/\d\d\/\d\d \d\d:\d\d:\d\d) \[([^\]]+)\] (\d+)#(\d+):\s*(.*)$/);if(!m){r.warnings.push('Nginx-Fehlerzeile nicht erkannt');return r}r.ts=m[1].replace(/^(\d{4})\/(\d\d)\/(\d\d) /,'$1-$2-$3T');r.timestampRaw=m[1];r.level=m[2];r.pid=Number(m[3]);r.service='nginx';r.message=m[5];Object.assign(f,{threadId:Number(m[4]),connectionId:firstMatch(m[5],/\*(\d+)/),client:firstMatch(m[5],/client:\s*([^,]+)/),server:firstMatch(m[5],/server:\s*([^,]+)/),request:firstMatch(m[5],/request:\s*"([^"]+)/)});
     }else if(format==='apache-error'){

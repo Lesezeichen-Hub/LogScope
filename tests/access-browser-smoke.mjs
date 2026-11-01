@@ -45,6 +45,18 @@ try{
   await page.locator('#quickSearch').waitFor();
   if(!(await page.locator('.scope-controls').innerText()).includes('/api'))throw Error('Exact access drilldown missing');
   if(!(await page.locator('#viewerCount').innerText()).startsWith('1 von'))throw Error('Access drilldown did not retain source and exact path');
+  const bulkLine='203.0.113.20 - - [31/Oct/2026:12:20:00 +0100] "GET /bulk HTTP/1.1" 200 12 "-" "load-test"\n';
+  await page.locator('#fileInput').setInputFiles([{name:'bulk-access.log',mimeType:'text/plain',buffer:Buffer.from(bulkLine.repeat(250001))}]);
+  await page.locator('#startImport').click();
+  await page.locator('.file-row').nth(3).getByText('Abgeschlossen').waitFor({timeout:120000});
+  await page.locator('[data-view="Access-Analyse"]').click();
+  await page.getByText('250.007 protokollierte Requests').waitFor({timeout:120000});
+  await page.locator('#fileInput').setInputFiles([{name:'later-access.log',mimeType:'text/plain',buffer:Buffer.from(bulkLine)}]);
+  await page.locator('#startImport').click();
+  await page.locator('.file-row').nth(4).getByText('Abgeschlossen').waitFor({timeout:30000});
+  await page.locator('[data-view="Access-Analyse"]').click();
+  await page.getByText('250.008 protokollierte Requests').waitFor({timeout:30000});
+  if(await page.locator('#accessSource option').count()!==6)throw Error('Previously loaded access sources disappeared');
   if(errors.length)throw Error(errors.join('\n'));
   if(process.env.LOGSCOPE_ACCESS_SCREENSHOT){
     await page.locator('[data-view="Access-Analyse"]').click();

@@ -1,0 +1,5 @@
+[01-Nov-2026 12:05:00] WARNING: [pool www] child 123, script '/app/slow.php' (request: "GET /slow") executing too slow (2.500000 sec), logging
+[01-Nov-2026 12:05:01] [pool www] pid 123
+script_filename = /app/slow.php
+[0x0000000000000000] sleep() /app/slow.php:12
+[01-Nov-2026 12:06:00] NOTICE: fpm is running, pid 100

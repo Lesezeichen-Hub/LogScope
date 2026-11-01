@@ -1,0 +1,9 @@
+[01-Nov-2026 12:00:00 Europe/Berlin] PHP Fatal error: Uncaught TypeError: bad argument in /app/index.php:42
+Stack trace:
+#0 /app/lib.php(10): run()
+#1 {main}
+  thrown in /app/index.php on line 42
+[01-Nov-2026 12:01:00 +0100] PHP Warning: Undefined array key "x" in /app/config.php on line 5
+[01-Nov-2026 12:02:00 +0100] PHP Deprecated: Optional parameter $x declared before required parameter $y in /app/legacy.php on line 7
+[01-Nov-2026 12:03:00 +0100] PHP Notice: Undefined variable $name in /app/user.php on line 9
+[01-Nov-2026 12:04:00 +0100] PHP Parse error: syntax error, unexpected token "}" in /app/broken.php on line 18

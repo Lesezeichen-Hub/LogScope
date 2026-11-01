@@ -1,4 +1,5 @@
 // Offline parsers for common web, database, AWS and container exports.
+import {isPhpLogLine,parsePhpBlock,startsPhpEvent} from './php-logs.js';
 const mongoCode={F:'fatal',E:'error',W:'warning',I:'info',D:'debug'};
 const month={Jan:'01',Feb:'02',Mar:'03',Apr:'04',May:'05',Jun:'06',Jul:'07',Aug:'08',Sep:'09',Oct:'10',Nov:'11',Dec:'12'};
 const db2Header=/^(\d{4}-\d\d-\d\d-\d\d\.\d\d\.\d\d\.\d{1,9}[+-]\d{1,4})\s+/;
@@ -10,7 +11,7 @@ const nginxError=/^\d{4}\/\d\d\/\d\d \d\d:\d\d:\d\d \[(?:error|warn|notice|info|
 const apacheError=/^\[[A-Za-z]{3} [A-Za-z]{3} \d{1,2} \d\d:\d\d:\d\d(?:\.\d+)? \d{4}\] \[[^\]]+:(?:error|warn|notice|info|debug|crit|alert|emerg)\]/i;
 const mysqlError=/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?(?:Z|[+-]\d\d:\d\d)?\s+(?:\d+\s+)?\[(?:ERROR|Warning|Note|System)\]\s+\[MY-\d+\]/i;
 
-export const extendedFormats=['web-access','nginx-error','apache-error','mysql-error','mysql-error-json','mysql-slow','mysql-general','mongodb-json','mongodb-text','db2diag','postgresql-stderr','postgresql-json','postgresql-csv','redis','aws-cloudtrail','aws-cloudwatch','aws-alb','aws-vpc','aws-waf','aws-s3','aws-cloudfront','aws-ecs','aws-lambda','k8s-cri','k8s-klog','k8s-docker-json','k8s-audit-json','k8s-event-json','twisted'];
+export const extendedFormats=['web-access','nginx-error','apache-error','php-error','mysql-error','mysql-error-json','mysql-slow','mysql-general','mongodb-json','mongodb-text','db2diag','postgresql-stderr','postgresql-json','postgresql-csv','redis','aws-cloudtrail','aws-cloudwatch','aws-alb','aws-vpc','aws-waf','aws-s3','aws-cloudfront','aws-ecs','aws-lambda','k8s-cri','k8s-klog','k8s-docker-json','k8s-audit-json','k8s-event-json','twisted'];
 
 export function detectExtended(sample){
   const lines=sample.trim().split(/\r?\n/).slice(0,30), first=lines.find(x=>x.trim())||'';
@@ -28,6 +29,7 @@ export function detectExtended(sample){
   const flow=first.trim().split(/\s+/);
   if(/^version\s+account-id\s+interface-id\s+/i.test(first)||flow.length>=14&&/^\d+$/.test(flow[0])&&/^\d{12}$/.test(flow[1])&&/^eni-/.test(flow[2])&&['ACCEPT','REJECT'].includes(flow[12]))return {format:'aws-vpc',confidence:.94};
   if(accessLine.test(first))return {format:'web-access',confidence:.9};
+  if(isPhpLogLine(first))return {format:'php-error',confidence:.93};
   if(redisLine.test(first))return {format:'redis',confidence:.98};
   if(nginxError.test(first))return {format:'nginx-error',confidence:.93};
   if(apacheError.test(first))return {format:'apache-error',confidence:.93};
@@ -53,6 +55,7 @@ export function detectExtended(sample){
     }catch{}
   }
   if(lines.some(line=>accessLine.test(line)))return {format:'web-access',confidence:.8};
+  if(lines.some(isPhpLogLine))return {format:'php-error',confidence:.8};
   if(lines.some(line=>redisLine.test(line)))return {format:'redis',confidence:.85};
   return null;
 }
@@ -76,6 +79,7 @@ export function parseExtended(raw,format,context={}){
   const first=raw.split('\n')[0],result={message:first,ts:null,timestampRaw:null,level:null,host:null,service:null,process:null,pid:null,fields:{},warnings:[]};
   const r=result,f=r.fields;
   try{
+    if(format==='php-error')return parsePhpBlock(raw);
     if(format==='web-access'){
       const m=first.match(accessLine);if(!m){r.warnings.push('Access-Zeile nicht erkannt');return r}
       const prefixColumns=m[1].trim().split(/\s+/),tail=accessTail(first.slice(m[0].length)),client=accessClient(prefixColumns);r.ts=parseApacheTime(m[2]);r.timestampRaw=m[2];r.host=null;r.service='web';r.message=m[3];Object.assign(f,{remoteAddress:client,request:m[3],status:Number(m[4])||null,bytes:m[5]==='-'?null:Number(m[5]),referrer:tail.referrer,userAgent:tail.userAgent});
@@ -156,6 +160,7 @@ export function parseExtended(raw,format,context={}){
 }
 
 export function startsNewEvent(format,line,block){
+  if(format==='php-error')return startsPhpEvent(line);
   if(block.length&&['db2diag','postgresql-stderr','mysql-error'].includes(format)){
     const other=detectExtended(line)?.format;
     if(other&&other!==format)return true;

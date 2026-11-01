@@ -1,5 +1,6 @@
 import {sqlFingerprint} from './core.js';
 import {accessRecord} from './access-analytics.js';
+import {phpRecord} from './php-logs.js';
 
 export const eventSchemaVersion=2;
 
@@ -18,16 +19,19 @@ function finite(value){
 }
 
 export function normalizeEvent(event,originalLevel=null){
-  const fields=event.fields||{},parser=event.parserId||'',message=event.message||'',access=accessRecord(event);
+  const fields=event.fields||{},parser=event.parserId||'',message=event.message||'',access=accessRecord(event),php=phpRecord(event);
   const product=/^(mysql|mariadb|mongodb|postgresql|db2|redis)/.exec(parser)?.[1]||
     (/^(?:caddy|nginx|apache)/.exec(parser)?.[0])||
     (/^redis(?:-server)?(?:\.service)?$/i.test(event.service||event.process||'')?'redis':null)||
+    (parser==='php-error'||php?'php':null)||
     (parser==='web-access'||access?'webserver':/^(syslog|journal)/.test(parser)?'linux':null);
   const domain=/^(mysql|mariadb|mongodb|postgresql|db2|redis)$/.test(product)?'database':
-    /^(caddy|nginx|apache|webserver)$/.test(product)?'web':product==='linux'?'system':'other';
+    /^(caddy|nginx|apache|webserver)$/.test(product)?'web':product==='linux'?'system':product==='php'?'application':'other';
   const normalized={domain,product,originalLevel,clientIp:null,user:null,outcome:null,eventType:null,
     database:null,instance:null,operation:null,durationMs:null,lockMs:null,rowsExamined:null,
-    status:null,method:null,path:null,bytes:null,httpHost:null,userAgent:null,referrer:null,protocol:null,diagnosticCode:null,queryPattern:null};
+    status:null,method:null,path:null,bytes:null,httpHost:null,userAgent:null,referrer:null,protocol:null,diagnosticCode:null,queryPattern:null,
+    phpKind:null,phpFile:null,phpLine:null,phpPool:null,exceptionClass:null,stackDepth:null};
+  if(php){Object.assign(normalized,{phpKind:php.kind,phpFile:php.file,phpLine:php.line,phpPool:php.pool,exceptionClass:php.exceptionClass,stackDepth:php.stackFrames?.length??0,eventType:'php-'+php.kind});if(php.durationMs!==null)normalized.durationMs=php.durationMs}
   if(domain==='system'){
     let match=message.match(/^(Accepted|Failed) (?:password|publickey|keyboard-interactive(?:\/pam)?) for (?:invalid user )?(\S+) from (\S+) port \d+/);
     if(match)Object.assign(normalized,{eventType:'login',outcome:match[1]==='Accepted'?'success':'failure',user:match[2],clientIp:match[3]});

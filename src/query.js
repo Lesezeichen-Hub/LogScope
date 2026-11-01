@@ -9,7 +9,8 @@ export const fieldCatalog=[
   ['lockMs','Lock-Zeit (ms)','number'],['rowsExamined','Untersuchte Zeilen / Dokumente','number'],
   ['status','HTTP-Status','number'],['method','HTTP-Methode','text'],['path','Request-Pfad','text'],
   ['httpHost','HTTP-Host','text'],['userAgent','User Agent','text'],['referrer','Referrer-Domain','text'],['protocol','Protokoll','text'],
-  ['bytes','Bytes','number'],['diagnosticCode','Diagnosecode','text'],['queryPattern','Abfragemuster','text']
+  ['bytes','Bytes','number'],['diagnosticCode','Diagnosecode','text'],['queryPattern','Abfragemuster','text'],
+  ['phpKind','PHP-Typ','text'],['phpFile','PHP-Datei','text'],['phpLine','PHP-Zeile','number'],['phpPool','PHP-FPM-Pool','text'],['exceptionClass','PHP-Ausnahmeklasse','text'],['stackDepth','PHP-Stacktiefe','number']
 ].map(([key,label,type])=>({key,label,type}));
 
 const definitions=new Map(fieldCatalog.map(field=>[field.key,field]));

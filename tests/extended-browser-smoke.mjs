@@ -21,10 +21,10 @@ try{
   page.on('pageerror',error=>errors.push(error.message));
   page.on('request',request=>{if(!request.url().startsWith('http://127.0.0.1:8766/'))errors.push('External request: '+request.url())});
   await page.goto('http://127.0.0.1:8766/modules/demo/index.html');
-  const names=['synthetic-nginx-access.log','synthetic-mongodb.jsonl','synthetic-db2diag.log','synthetic-aws-cloudtrail.json','synthetic-aws-alb.log','synthetic-aws-vpc.log','synthetic-k8s-cri.log','synthetic-aws-cloudfront.log','synthetic-aws-s3.log','synthetic-aws-ecs.jsonl','synthetic-postgresql.csv','synthetic-k8s-eventlist.json','synthetic-k8s-klog.log','synthetic-aws-cloudwatch.json'];
+  const names=['synthetic-nginx-access.log','synthetic-mongodb.jsonl','synthetic-db2diag.log','synthetic-aws-cloudtrail.json','synthetic-aws-alb.log','synthetic-aws-vpc.log','synthetic-k8s-cri.log','synthetic-aws-cloudfront.log','synthetic-aws-s3.log','synthetic-aws-ecs.jsonl','synthetic-postgresql.csv','synthetic-k8s-eventlist.json','synthetic-k8s-klog.log','synthetic-aws-cloudwatch.json','synthetic-redis.log','synthetic-mixed.log'];
   await page.locator('#fileInput').setInputFiles(names.map(name=>path.join(root,'tests/fixtures',name)));
   const selects=page.locator('#previews [data-format]');
-  const expected=['web-access','mongodb-json','db2diag','aws-cloudtrail','aws-alb','aws-vpc','k8s-cri','aws-cloudfront','aws-s3','aws-ecs','postgresql-csv','k8s-event-json','k8s-klog','aws-cloudwatch'];
+  const expected=['web-access','mongodb-json','db2diag','aws-cloudtrail','aws-alb','aws-vpc','k8s-cri','aws-cloudfront','aws-s3','aws-ecs','postgresql-csv','k8s-event-json','k8s-klog','aws-cloudwatch','redis','web-access'];
   for(let i=0;i<expected.length;i++)if(await selects.nth(i).inputValue()!==expected[i])throw Error(`Detection ${names[i]}: ${await selects.nth(i).inputValue()}`);
   await page.locator('#startImport').click();
   await page.locator('.file-row').nth(names.length-1).getByText('Abgeschlossen').waitFor({timeout:15000});
@@ -34,7 +34,7 @@ try{
     if(!text.includes(expected[i])||!text.includes('Abgeschlossen'))throw Error(`Import ${names[i]}: ${text}`);
   }
   await page.locator('[data-view=Dashboard]').click();
-  if(!await page.getByText('24',{exact:true}).count())throw Error('Unexpected event count');
+  if(!await page.getByText('30',{exact:true}).count())throw Error('Unexpected event count');
   if(errors.length)throw Error(errors.join('\n'));
   console.log('Extended browser smoke passed');
 }finally{await browser?.close();server.close()}

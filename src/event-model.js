@@ -19,10 +19,11 @@ function finite(value){
 
 export function normalizeEvent(event,originalLevel=null){
   const fields=event.fields||{},parser=event.parserId||'',message=event.message||'',access=accessRecord(event);
-  const product=/^(mysql|mariadb|mongodb|postgresql|db2)/.exec(parser)?.[1]||
+  const product=/^(mysql|mariadb|mongodb|postgresql|db2|redis)/.exec(parser)?.[1]||
     (/^(?:caddy|nginx|apache)/.exec(parser)?.[0])||
+    (/^redis(?:-server)?(?:\.service)?$/i.test(event.service||event.process||'')?'redis':null)||
     (parser==='web-access'||access?'webserver':/^(syslog|journal)/.test(parser)?'linux':null);
-  const domain=/^(mysql|mariadb|mongodb|postgresql|db2)$/.test(product)?'database':
+  const domain=/^(mysql|mariadb|mongodb|postgresql|db2|redis)$/.test(product)?'database':
     /^(caddy|nginx|apache|webserver)$/.test(product)?'web':product==='linux'?'system':'other';
   const normalized={domain,product,originalLevel,clientIp:null,user:null,outcome:null,eventType:null,
     database:null,instance:null,operation:null,durationMs:null,lockMs:null,rowsExamined:null,

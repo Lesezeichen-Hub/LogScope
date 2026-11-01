@@ -4,12 +4,13 @@ const month={Jan:'01',Feb:'02',Mar:'03',Apr:'04',May:'05',Jun:'06',Jul:'07',Aug:
 const db2Header=/^(\d{4}-\d\d-\d\d-\d\d\.\d\d\.\d\d\.\d{1,9}[+-]\d{1,4})\s+/;
 const criLine=/^(\d{4}-\d\d-\d\dT\S+)\s+(stdout|stderr)\s+([FP])\s?(.*)$/;
 const albLine=/^(?:http|https|h2|grpcs|ws|wss)\s+\d{4}-\d\d-\d\dT\S+\s+\S+\s+/;
-const accessLine=/^\s*(\S+)(?:\s+\S+){2,3}\s+\[(\d{1,2}\/\w{3}\/\d{4}:\d\d:\d\d:\d\d\s+[+-]\d{4})\]\s+"((?:\\.|[^"\\\r\n])*)"\s+(\d{3}|-)\s+(\d+|-)/;
+const accessLine=/^\s*((?:[^\s"\[\]]+\s+)+)\[(\d{1,2}\/\w{3}\/\d{4}:\d\d:\d\d:\d\d\s+[+-]\d{4})\]\s+"((?:\\.|[^"\\\r\n])*)"\s+(\d{3}|-)\s+(\d+|-)(?=\s|$)/;
+const redisLine=/^\s*(\d+):([MCSX])\s+(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{4})\s+(\d\d:\d\d:\d\d(?:\.\d{1,6})?)\s+([.\-*#])\s+(.+)$/;
 const nginxError=/^\d{4}\/\d\d\/\d\d \d\d:\d\d:\d\d \[(?:error|warn|notice|info|debug|crit|alert|emerg)\]/i;
 const apacheError=/^\[[A-Za-z]{3} [A-Za-z]{3} \d{1,2} \d\d:\d\d:\d\d(?:\.\d+)? \d{4}\] \[[^\]]+:(?:error|warn|notice|info|debug|crit|alert|emerg)\]/i;
 const mysqlError=/^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?(?:Z|[+-]\d\d:\d\d)?\s+(?:\d+\s+)?\[(?:ERROR|Warning|Note|System)\]\s+\[MY-\d+\]/i;
 
-export const extendedFormats=['web-access','nginx-error','apache-error','mysql-error','mysql-error-json','mysql-slow','mysql-general','mongodb-json','mongodb-text','db2diag','postgresql-stderr','postgresql-json','postgresql-csv','aws-cloudtrail','aws-cloudwatch','aws-alb','aws-vpc','aws-waf','aws-s3','aws-cloudfront','aws-ecs','aws-lambda','k8s-cri','k8s-klog','k8s-docker-json','k8s-audit-json','k8s-event-json','twisted'];
+export const extendedFormats=['web-access','nginx-error','apache-error','mysql-error','mysql-error-json','mysql-slow','mysql-general','mongodb-json','mongodb-text','db2diag','postgresql-stderr','postgresql-json','postgresql-csv','redis','aws-cloudtrail','aws-cloudwatch','aws-alb','aws-vpc','aws-waf','aws-s3','aws-cloudfront','aws-ecs','aws-lambda','k8s-cri','k8s-klog','k8s-docker-json','k8s-audit-json','k8s-event-json','twisted'];
 
 export function detectExtended(sample){
   const lines=sample.trim().split(/\r?\n/).slice(0,30), first=lines.find(x=>x.trim())||'';
@@ -27,6 +28,7 @@ export function detectExtended(sample){
   const flow=first.trim().split(/\s+/);
   if(/^version\s+account-id\s+interface-id\s+/i.test(first)||flow.length>=14&&/^\d+$/.test(flow[0])&&/^\d{12}$/.test(flow[1])&&/^eni-/.test(flow[2])&&['ACCEPT','REJECT'].includes(flow[12]))return {format:'aws-vpc',confidence:.94};
   if(accessLine.test(first))return {format:'web-access',confidence:.9};
+  if(redisLine.test(first))return {format:'redis',confidence:.98};
   if(nginxError.test(first))return {format:'nginx-error',confidence:.93};
   if(apacheError.test(first))return {format:'apache-error',confidence:.93};
   if(mysqlError.test(first))return {format:'mysql-error',confidence:.94};
@@ -50,6 +52,8 @@ export function detectExtended(sample){
       if(o.requestId&&o.type&&o.record||o.level&&o.requestId&&o.timestamp)return {format:'aws-lambda',confidence:.78};
     }catch{}
   }
+  if(lines.some(line=>accessLine.test(line)))return {format:'web-access',confidence:.8};
+  if(lines.some(line=>redisLine.test(line)))return {format:'redis',confidence:.85};
   return null;
 }
 
@@ -57,6 +61,14 @@ function parseApacheTime(raw){const m=raw.match(/^(\d{1,2})\/(\w{3})\/(\d{4}):(\
 function parseApacheErrorTime(raw){const m=raw.match(/^\w{3}\s+(\w{3})\s+(\d{1,2})\s+(\d\d:\d\d:\d\d(?:\.\d+)?)\s+(\d{4})$/);return m&&month[m[1]]?`${m[4]}-${month[m[1]]}-${m[2].padStart(2,'0')}T${m[3]}`:null}
 function parseDb2Time(raw){const m=raw.match(/^(\d{4}-\d\d-\d\d)-(\d\d)\.(\d\d)\.(\d\d)\.(\d+)([+-])(\d{1,4})$/);if(!m)return null;const offset=Number(m[7]),h=String(Math.floor(offset/60)).padStart(2,'0'),min=String(offset%60).padStart(2,'0');return `${m[1]}T${m[2]}:${m[3]}:${m[4]}.${m[5]}${m[6]}${h}:${min}`}
 function tokens(line){return line.match(/"(?:\\.|[^"\\])*"|\[[^\]]*\]|\S+/g)?.map(x=>x[0]==='"'?x.slice(1,-1):x)||[]}
+function accessClient(columns){return columns.find(value=>/^(?:\d{1,3}\.){3}\d{1,3}$/.test(value)||value.includes(':')&&/^[\da-f:.]+$/i.test(value))??columns[0]}
+function accessTail(line){
+  const parts=line.match(/"(?:\\.|[^"\\])*"|\S+/g)||[],values=parts.map(part=>part[0]==='"'?part.slice(1,-1):part);
+  const quoted=parts.flatMap((part,index)=>part[0]==='"'?[index]:[]);
+  if(quoted.length<2)return {referrer:values[0]??null,userAgent:values[1]??null,extraColumns:values.slice(2)};
+  const [refIndex,agentIndex]=quoted;
+  return {referrer:values[refIndex],userAgent:values[agentIndex],extraColumns:values.filter((_,index)=>index!==refIndex&&index!==agentIndex)};
+}
 function parseCsv(raw){const cells=[];let value='',quoted=false;for(let i=0;i<raw.length;i++){const c=raw[i];if(c==='"'){if(quoted&&raw[i+1]==='"'){value+='"';i++}else quoted=!quoted}else if(c===','&&!quoted){cells.push(value);value=''}else value+=c}cells.push(value);return cells}
 function firstMatch(raw,re){return raw.match(re)?.[1]||null}
 
@@ -66,7 +78,12 @@ export function parseExtended(raw,format,context={}){
   try{
     if(format==='web-access'){
       const m=first.match(accessLine);if(!m){r.warnings.push('Access-Zeile nicht erkannt');return r}
-      const t=tokens(first),dateIndex=t.findIndex(token=>token.startsWith('['));r.ts=parseApacheTime(m[2]);r.timestampRaw=m[2];r.host=null;r.service='web';r.message=m[3];Object.assign(f,{remoteAddress:m[1],request:m[3],status:Number(m[4])||null,bytes:m[5]==='-'?null:Number(m[5]),referrer:t[dateIndex+4]??null,userAgent:t[dateIndex+5]??null});
+      const prefixColumns=m[1].trim().split(/\s+/),tail=accessTail(first.slice(m[0].length)),client=accessClient(prefixColumns);r.ts=parseApacheTime(m[2]);r.timestampRaw=m[2];r.host=null;r.service='web';r.message=m[3];Object.assign(f,{remoteAddress:client,request:m[3],status:Number(m[4])||null,bytes:m[5]==='-'?null:Number(m[5]),referrer:tail.referrer,userAgent:tail.userAgent});
+      if(prefixColumns.length!==3||prefixColumns[0]!==client||prefixColumns[1]!=='-'||prefixColumns[2]!=='-')f.prefixColumns=prefixColumns;
+      if(tail.extraColumns.length)f.extraColumns=tail.extraColumns;
+    }else if(format==='redis'){
+      const m=first.match(redisLine);if(!m){r.warnings.push('Redis-Zeile nicht erkannt');return r}
+      r.ts=`${m[5]}-${month[m[4]]}-${m[3].padStart(2,'0')}T${m[6]}`;r.timestampRaw=`${m[3]} ${m[4]} ${m[5]} ${m[6]}`;r.pid=Number(m[1]);r.service='redis';r.message=m[8];r.level=({'.':'debug','-':'info','*':'notice','#':'warning'})[m[7]];Object.assign(f,{role:m[2],logLevel:({'.':'debug','-':'verbose','*':'notice','#':'warning'})[m[7]]});
     }else if(format==='nginx-error'){
       const m=first.match(/^(\d{4}\/\d\d\/\d\d \d\d:\d\d:\d\d) \[([^\]]+)\] (\d+)#(\d+):\s*(.*)$/);if(!m){r.warnings.push('Nginx-Fehlerzeile nicht erkannt');return r}r.ts=m[1].replace(/^(\d{4})\/(\d\d)\/(\d\d) /,'$1-$2-$3T');r.timestampRaw=m[1];r.level=m[2];r.pid=Number(m[3]);r.service='nginx';r.message=m[5];Object.assign(f,{threadId:Number(m[4]),connectionId:firstMatch(m[5],/\*(\d+)/),client:firstMatch(m[5],/client:\s*([^,]+)/),server:firstMatch(m[5],/server:\s*([^,]+)/),request:firstMatch(m[5],/request:\s*"([^"]+)/)});
     }else if(format==='apache-error'){
@@ -139,6 +156,10 @@ export function parseExtended(raw,format,context={}){
 }
 
 export function startsNewEvent(format,line,block){
+  if(block.length&&['db2diag','postgresql-stderr','mysql-error'].includes(format)){
+    const other=detectExtended(line)?.format;
+    if(other&&other!==format)return true;
+  }
   if(format==='db2diag')return db2Header.test(line);
   if(format==='postgresql-stderr')return /^\d{4}-\d\d-\d\d[ T]\d\d:\d\d:\d\d/.test(line);
   if(format==='postgresql-csv')return (block.join('\n').match(/"/g)||[]).length%2===0;

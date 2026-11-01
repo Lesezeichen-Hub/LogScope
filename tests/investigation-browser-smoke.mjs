@@ -69,7 +69,7 @@ try{
   await page.locator('[data-view="Einstellungen"]').click();await page.locator('#saveProject').click();
   await page.getByText('Projekt gespeichert.',{exact:true}).waitFor();
   await page.reload();
-  await page.locator('[data-view="Einstellungen"]').click();await page.locator('#loadProject').click();
+  await page.locator('[data-view="Einstellungen"]').click();await page.locator('[data-open-project]').first().click();
   await page.getByText('Projekt geöffnet.',{exact:true}).waitFor();
   await page.locator('[data-view="Suche & Filter"]').click();
   assert.match(await page.locator('#groupResults').innerText(),/2 Ereignisse/);
